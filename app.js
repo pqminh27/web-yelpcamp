@@ -2,13 +2,8 @@ const express = require('express')
 const path = require('path')
 const mongoose = require('mongoose');
 const methodOverride = require('method-override')
-const Campground = require('./models/campground');
 const ejsMate = require('ejs-mate')
-const catchAsync = require('./utils/catchAsync')
 const ExpressError = require('./utils/ExpressError')
-const { campgroundSchema, reviewSchema } = require('./schemas.js');
-const campground = require('./models/campground');
-const Review = require('./models/review');
 const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/reviews');
 const session = require('express-session');
@@ -56,6 +51,9 @@ passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.use((req, res, next) => {
+    if (!['/login', '/'].includes(req.originalUrl)) {
+        req.session.returnToUrl = req.originalUrl;
+    }
     res.locals.currentUser = req.user;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
@@ -65,17 +63,12 @@ app.use('/', userRoutes);
 app.use('/campgrounds', campgroundRoutes);
 app.use('/campgrounds/:id/reviews', reviewRoutes);
 
-app.get('/fakeUser', async(req, res) => {
-    const user = new User({ email: 'asdasas@gmail.com', username: 'pqminh' });
-    const newUser = await User.register(user, 'pass123456');
-    res.send(newUser);
-})
-
 app.get('/', (req, res) => {
     res.send("HOME!!!");
 })
+
 app.all('*', (req, res, next) => {
-    next(new ExpressError("Page Not Found!!!", 500))
+    next(new ExpressError("Page Not Found!!!", 404))
 })
 
 app.use((err, req, res, next) => {
